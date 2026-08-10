@@ -19,6 +19,25 @@ case "$1" in
 	echo "		learn		Create a new automation"
 	;;
 
+
+    start)
+	if [ -z "$2" ]; then 
+	        echo "Usage: doom start <project>"
+	       	exit 1
+	fi
+	
+	project="$2"
+	project_file="$HOME/Documents/neer/doom/projects/$project.yaml"
+	
+	if [ ! -f "$project_file" ]; then
+			echo "Project $project does not exist."
+			exit 1
+	fi
+
+	echo "Starting DOOM project: $project"
+	echo "Configuration: $project_file"
+	;; 	
+
     *)
 	echo "Unknown command: '$1'"
 	echo "Run 'doom help' for available commands."

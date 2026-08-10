@@ -1,0 +1,15 @@
+
+
+name: test
+
+workspace:
+	browser: 1
+	editor: 2
+	terminal; 3
+
+applications: 
+	browser: brave
+	editor: code
+	terminal: kitty
+
+
