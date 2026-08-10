@@ -1,0 +1,28 @@
+#!/usr/bin/env bash
+
+
+case "$1" in 
+    help)
+	echo 
+	echo "DOOM - Local Linux Automation"
+	echo
+	echo "Usage:"
+	echo "   doom <command>"
+	echo
+	echo "Commands: "
+	echo "		start		Start a project environment"
+	echo "		stop 		Stop a project environment"
+	echo "		save		Save current session"
+	echo "		restore		Restore previous session"
+	echo "		status		Show current state"
+	echo "		run		Execute an approved action"
+	echo "		learn		Create a new automation"
+	;;
+
+    *)
+	echo "Unknown command: '$1'"
+	echo "Run 'doom help' for available commands."
+	exit 1
+	;;
+esac
+
