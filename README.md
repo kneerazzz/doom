@@ -1,10 +1,12 @@
 # DOOM
 
-> Local Linux automation and development environment manager.
+> Local-first Linux project workspace automation.
 
-DOOM is a local-first Linux automation project for restoring development environments on a Linux desktop.
+DOOM is a personal development environment manager for Linux desktops.
 
-The goal is to stop manually rebuilding the same setup after every restart or project switch: terminals, editors, browsers, workspaces, services, and project directories should eventually be described once and reconciled automatically.
+The main goal is simple: after a restart, logout, or project switch, you should not have to manually reopen the same browser, editor, terminals, logs, services, workspaces, SSH sessions, Docker commands, and project directories again.
+
+Instead, each project should describe its desired working environment once, and DOOM should restore or reconcile that environment for you.
 
 Example target workflow:
 
@@ -12,14 +14,48 @@ Example target workflow:
 doom start sellora
 ```
 
-Eventually, that command should inspect the current desktop state, compare it with the desired project state, and perform only the missing actions.
+DOOM should inspect the current desktop, compare it with the project definition, and perform only the missing actions.
 
-## Vision
+It should not blindly launch duplicate windows every time.
 
-DOOM is being built around state reconciliation:
+## What This Project Is For
+
+Most projects have a repeated workspace layout.
+
+For example, a project might use:
+
+- Workspace 1 for the browser
+- Workspace 2 for the editor
+- Workspace 3 for terminals
+- Workspace 4 for another editor, AI tool, or helper app
+- Workspace 10 for music or background apps
+
+The terminal workspace may contain several different terminals:
+
+- A normal shell
+- A web app server
+- A backend server
+- A log viewer
+- A package/build watcher
+
+DOOM is meant to remember and restore that setup.
+
+Long term, DOOM should also help with common project operations:
+
+- Git status, commit, and push flows
+- Docker startup and logs
+- SSH connections
+- Project services
+- Script generation
+- Safe one-click workflows
+- Local AI-assisted automation
+
+## Core Idea
+
+DOOM is built around state reconciliation:
 
 ```text
-desired project state
+project definition
         +
 current system state
         |
@@ -27,31 +63,36 @@ current system state
      matcher
         |
         v
-     planner
+      planner
+        |
+        v
+ permission check
         |
         v
      executor
 ```
 
-Instead of blindly launching every application again, DOOM should detect what already exists.
+The important idea is that DOOM should compare desired state with current state before acting.
 
-For example:
+Example:
 
 ```text
 Current:
   Firefox -> workspace 1
-  VS Code -> special workspace
+  Code    -> workspace 4
   Kitty   -> ~/Documents/neer/doom
 
 Desired:
   Firefox -> workspace 1
-  VS Code -> workspace 2
+  Code    -> workspace 2
   Kitty   -> ~/Documents/neer/sellora
 
 Plan:
-  Move VS Code to workspace 2
+  Move Code to workspace 2
   Launch Sellora terminal
 ```
+
+This makes `doom start <project>` idempotent: running it twice should not create duplicate windows when the correct setup already exists.
 
 ## Current Status
 
@@ -63,21 +104,135 @@ Currently present:
 - Python command entry point: `core/main.py`
 - Basic command router
 - YAML project loading with PyYAML
+- Unified `windows` schema in project YAML files
 - Example project definitions in `projects/`
 - Initial Hyprland controller
-- Initial Hyprland state inspection code
-- Initial process inspection through `/proc/<pid>/cwd`
+- Initial Hyprland state inspection
+- Process working-directory lookup through `/proc/<pid>/cwd`
 - Early project/current-state/diff modules
 
-Known current gaps:
+Currently working:
 
-- The project YAML schema is not unified yet.
-- `doom start test` works with the current router.
-- `doom start sellora` currently fails because `sellora.yaml` uses a newer `windows` schema while the router expects `workspaces` and `applications`.
-- Some state/diff modules are architectural drafts and are not fully runnable yet.
-- Matching, planning, execution, session save, and session restore are not complete yet.
+```bash
+python core/main.py help
+python core/main.py start test
+python core/main.py start sellora
+```
 
-## Project Structure
+Current limitations:
+
+- `start` currently prints the desired project windows; it does not fully execute the plan yet.
+- `status` is not implemented yet.
+- `plan` is not implemented yet.
+- Matching is still basic.
+- Terminal identity needs stronger matching through title, role, directory, or command.
+- Session save/restore is not implemented yet.
+- Git, Docker, SSH, and AI automation are not implemented yet.
+
+## Project Definition
+
+Projects live in `projects/`.
+
+Current schema:
+
+```yaml
+name: sellora
+
+windows:
+  browser:
+    command: firefox
+    class: firefox
+    workspace: 1
+
+  editor:
+    command: code ~/Documents/neer/sellora
+    class: code
+    workspace: 2
+    directory: ~/Documents/neer/sellora
+
+  terminal:
+    command: kitty --working-directory ~/Documents/neer/sellora
+    class: kitty
+    workspace: 3
+    directory: ~/Documents/neer/sellora
+
+  spotify:
+    command: spotify
+    class: spotify
+    workspace: 10
+```
+
+For normal applications, matching by window class may be enough.
+
+For terminals, class is not enough because multiple Kitty windows can be open at the same time. Terminal definitions should eventually include stable identity fields:
+
+```yaml
+server:
+  command: kitty --title doom:sellora:server --working-directory ~/Documents/neer/sellora npm run dev
+  class: kitty
+  title: doom:sellora:server
+  workspace: 3
+  directory: ~/Documents/neer/sellora
+  role: server
+```
+
+That gives DOOM a reliable way to detect the correct terminal later.
+
+## Planned Commands
+
+Near-term commands:
+
+```bash
+doom status
+doom plan <project>
+doom start <project>
+```
+
+`doom status` should inspect the current desktop and print the active Hyprland state:
+
+```text
+Workspace 1:
+  firefox
+
+Workspace 2:
+  code ~/Documents/neer/sellora
+
+Workspace 3:
+  kitty ~/Documents/neer/sellora
+  kitty ~/Documents/neer/sellora
+```
+
+`doom plan <project>` should show what DOOM would do without executing anything:
+
+```text
+Plan for sellora
+
+Launch:
+  server -> kitty on workspace 3
+  logs -> kitty on workspace 3
+
+Move:
+  editor -> workspace 2
+```
+
+`doom start <project>` should later execute the approved plan.
+
+Future commands:
+
+```bash
+doom save <project>
+doom restore <project>
+doom stop <project>
+doom focus <project>
+doom git status <project>
+doom git push <project>
+doom docker up <project>
+doom docker logs <project>
+doom ssh <target>
+doom doctor
+```
+
+## Architecture
 
 Current structure:
 
@@ -109,116 +264,19 @@ doom/
         └── controller.py
 ```
 
-## Core Concepts
+Responsibilities:
 
-### Project
-
-A project describes a development environment.
-
-It may eventually include:
-
-- Applications
-- Workspaces
-- Terminals
-- Working directories
-- Commands
-- Services
-- Browser sessions
-- Git repositories
-- SSH connections
-- Environment variables
-
-### Desired State
-
-The desired state describes what should exist when a project is active.
-
-Example:
-
-```yaml
-editor:
-  type: application
-  command: code
-  class: code
-  workspace: 2
-```
-
-### Current State
-
-The current state describes what is actually running on the machine.
-
-DOOM is expected to collect this from:
-
-- Hyprland
-- Linux processes
-- The filesystem
-- Git
-- SSH
-- System services
-
-### Matching
-
-Matching decides whether an existing system object satisfies a desired project object.
-
-For terminals, class alone is not enough. Multiple Kitty windows may exist, so DOOM should also compare workspace, working directory, and project identity.
-
-### Planning
-
-The planner should convert state differences into explicit actions.
-
-Examples:
-
-```text
-LaunchApplication firefox
-MoveWindow 0x1234 -> workspace 2
-OpenTerminal ~/Documents/neer/sellora
-```
-
-### Execution
-
-The executor should perform approved actions through integration layers such as Hyprland, Git, SSH, Docker, or shell commands.
-
-## Hyprland Integration
-
-DOOM currently targets Hyprland.
-
-Hyprland-specific logic should stay inside:
-
-```text
-skills/hyprland/
-```
-
-The rest of the system should use a controller abstraction instead of directly depending on Hyprland command details.
-
-Current integration ideas include:
-
-- Switching workspaces
-- Launching applications
-- Reading clients with `hyprctl -j clients`
-- Reading workspaces with `hyprctl -j workspaces`
-- Reading active window and workspace state
-- Moving windows between workspaces
-
-## Commands
-
-Current CLI shape:
-
-```bash
-doom help
-doom start <project>
-doom stop <project>
-doom save <project>
-doom restore <project>
-doom status <project>
-doom run <action>
-doom learn
-```
-
-Currently implemented:
-
-```bash
-python core/main.py help
-python core/main.py start test
-```
+- `core/main.py`: command-line entry point
+- `core/router.py`: command routing
+- `core/project.py`: project YAML loading
+- `core/stats/hyprland_state.py`: reads Hyprland state through `hyprctl`
+- `core/stats/process.py`: reads Linux process details
+- `core/stats/project_state.py`: wraps desired project state
+- `core/stats/system.py`: builds current system snapshots
+- `core/stats/diff.py`: compares current state with desired state
+- `core/permission.py`: future approval and safety layer
+- `core/executor.py`: future action execution layer
+- `skills/hyprland/`: Hyprland-specific control logic
 
 ## Development
 
@@ -240,6 +298,7 @@ Run the CLI:
 ```bash
 python core/main.py help
 python core/main.py start test
+python core/main.py start sellora
 ```
 
 Or use the shell entry point:
@@ -247,42 +306,8 @@ Or use the shell entry point:
 ```bash
 ./doom help
 ./doom start test
+./doom start sellora
 ```
-
-## Design Principles
-
-- Local first
-- Linux native
-- Deterministic core
-- State driven
-- Idempotent behavior
-- Safe by default
-- Explicit actions
-- Modular integrations
-- Optional AI layer
-
-## AI Direction
-
-AI is not the foundation of DOOM.
-
-The deterministic automation engine should work first. A local model can later translate natural language into safe DOOM intents.
-
-Example:
-
-```text
-"Start Sellora"
-```
-
-could become:
-
-```json
-{
-  "intent": "start_project",
-  "project": "sellora"
-}
-```
-
-DOOM should then handle the state inspection, planning, permission checks, and execution deterministically.
 
 ## Roadmap
 
@@ -292,68 +317,92 @@ DOOM should then handle the state inspection, planning, permission checks, and e
 - Python entry point
 - Command routing
 - YAML project loading
-- Hyprland controller
+- Unified project schema
+- Basic project display
 
 ### Phase 2 - Desktop State
 
+- `doom status`
 - Read Hyprland clients
 - Read Hyprland workspaces
-- Read active window
-- Read active workspace
-- Read Linux process information
+- Read active window and workspace
+- Read process working directories
+- Normalize current window state
 - Detect special workspaces
-- Normalize window state
 
-### Phase 3 - Reconciliation
+### Phase 3 - Planning
 
-- Unified project schema
+- `doom plan <project>`
 - Desired state model
 - Current state model
 - Window matcher
 - Terminal matcher
 - State diff
 - Action planner
-- Action executor
-- Idempotent `doom start`
+- Dry-run output
 
-### Phase 4 - Session Management
+### Phase 4 - Execution
 
-- `doom save`
-- `doom restore`
-- Terminal restoration
-- Browser restoration
-- Workspace restoration
-- Service restoration
+- `doom start <project>` executes plans
+- Launch missing windows
+- Move windows to target workspaces
+- Focus project workspace
+- Avoid duplicate terminals
+- Add approval checks for risky actions
 
-### Phase 5 - Development Automation
+### Phase 5 - Session Management
 
-- Git integration
-- SSH integration
-- Docker integration
+- `doom save <project>`
+- `doom restore <project>`
+- Generate project YAML from current desktop state
+- Restore terminal layouts
+- Restore browser/editor/workspace layout
+- Restore services
+
+### Phase 6 - Development Automation
+
+- Git status, commit, and push helpers
+- Docker start/log helpers
+- SSH helpers
 - Project services
 - Environment variables
 - Project-specific scripts
+- One-click workflows
 
-### Phase 6 - AI
+### Phase 7 - Local AI Layer
 
 - Local model integration
-- Intent parser
-- Tool calling
-- Natural-language project startup
-- Permission system
+- Natural-language intent parsing
+- Script suggestion
+- Script debugging support
 - Automation generation
+- Permission-aware tool calling
 
 ## Safety Model
 
-DOOM should not execute unrestricted AI-generated shell commands.
+DOOM should be deterministic and safe by default.
+
+AI should not directly execute unrestricted shell commands.
 
 The intended model is:
 
 ```text
-intent -> planner -> validated actions -> permission check -> executor
+natural language
+      |
+      v
+safe intent
+      |
+      v
+deterministic planner
+      |
+      v
+permission check
+      |
+      v
+executor
 ```
 
-Potentially destructive operations should require explicit approval.
+Potentially destructive actions should require explicit approval.
 
 Examples:
 
@@ -364,6 +413,22 @@ Examples:
 - `reboot`
 - Disk operations
 - Package removal
+- Docker volume deletion
+- Production SSH commands
+
+## Design Principles
+
+- Local first
+- Linux native
+- Hyprland focused first
+- Deterministic core
+- State driven
+- Idempotent behavior
+- Safe by default
+- Explicit actions
+- Human-readable plans
+- Modular integrations
+- Optional local AI layer
 
 ## License
 

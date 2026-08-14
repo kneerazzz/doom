@@ -1,4 +1,6 @@
 import argparse
+from router import route
+
 
 def main():
     parser = argparse.ArgumentParser(
@@ -6,15 +8,17 @@ def main():
         description="DOOM - Local Linux Automation"
     )
 
-    parser.add_argument(
-        "command",
-        help="command to execute"
-    )
+    parser.add_argument("command", nargs="?")
+    parser.add_argument("argument", nargs="?")
+
 
     args = parser.parse_args()
 
-    print(f"DOOM received command : {args.command}")
+    if args.command is None:
+        return route("help")
+
+    return route(args.command, args.argument)
 
 
 if __name__ ==  "__main__":
-    main()
+    raise SystemExit(main())

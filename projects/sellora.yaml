@@ -1,8 +1,6 @@
+name: sellora
 
-
-name: test
-
-windows:
+windows: 
   browser:
     command: firefox
     class: firefox
@@ -11,7 +9,13 @@ windows:
     command: code
     class: code
     workspace: 2
+    directory: ~/Documents/neer/sellora
   terminal:
     command: kitty
     class: kitty
     workspace: 3
+    directory: ~/Documents/neer/sellora
+  spotify: 
+    command: spotify
+    class: spotify
+    workspace: 10

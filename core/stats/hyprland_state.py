@@ -1,6 +1,11 @@
 import json
 import subprocess
 
+try:
+    from .process import get_process_cwd
+except ImportError:
+    from process import get_process_cwd
+
 class HyprlandState:
     
 
@@ -24,6 +29,22 @@ class HyprlandState:
     
     def active_workspace(self):
         return self._query("activeworkspace")
+
+    def normal_clients(self):
+        clients = self.clients()
+
+        result = []
+
+        for client in clients:
+            workspace_id = client["workspace"]["id"]
+            if workspace_id < 0:
+                continue
+            client["cwd"] = get_process_cwd(client["pid"])
+            result.append(client)
+
+        return result
+
+
 
     
 
