@@ -7,23 +7,50 @@ class StateDiff:
         self.current = current
         self.desired = desired
     
-    def find_window(self, window_class):
+    def find_window(self, config, used_clients):
         for client in self.current["clients"]:
-            if client["class"] == window_class:
+            client_id = client.get("address") or id(client)
+            if client_id in used_clients:
+                continue
+
+            if self.window_matches(client, config):
                 return client
             
         return None
+
+    def window_matches(self, client, config):
+        client_class = client.get("class", "").lower()
+        expected_class = config.get("class", "").lower()
+
+        if client_class != expected_class:
+            return False
+
+        expected_title = config.get("title")
+        if expected_title and client.get("title") != expected_title:
+            return False
+
+        expected_directory = config.get("directory")
+        if expected_directory:
+            actual_directory = client.get("cwd")
+            if actual_directory is None:
+                return False
+
+            expected_path = Path(expected_directory).expanduser().resolve()
+            actual_path = Path(actual_directory).expanduser().resolve()
+            if actual_path != expected_path:
+                return False
+
+        return True
     
 
     def calculate(self):
         actions = []
+        used_clients = set()
 
         for name, config in self.desired.windows().items():
-
-            window_class = config["class"]
             workspace = config["workspace"]
 
-            client = self.find_window(window_class)
+            client = self.find_window(config, used_clients)
 
             if client is None:
                 actions.append({
@@ -33,6 +60,8 @@ class StateDiff:
                     "workspace": workspace
                 })
                 continue
+
+            used_clients.add(client.get("address") or id(client))
             
             current_workspace = client["workspace"]["id"]
 
@@ -48,15 +77,5 @@ class StateDiff:
         return actions
     
     def terminal_matches(self, client, config):
-        if client["class"] != config["class"]:
-            return False
-        
-        expected_directory = Path(
-            config["directory"]
-        ).expanduser().resolve()
-
-        actual_directory = client.get("cwd")
-        if actual_directory is None:
-            return False
-        return actual_directory == expected_directory
+        return self.window_matches(client, config)
     

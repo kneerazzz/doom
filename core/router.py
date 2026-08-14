@@ -1,5 +1,9 @@
+import subprocess
 from pathlib import Path
 from project import load_project
+from stats.diff import StateDiff
+from stats.hyprland_state import HyprlandState
+from stats.project_state import ProjectState
 
 PROJECT_DIR = Path(__file__).resolve().parent.parent / "projects"
 
@@ -14,33 +18,42 @@ def show_help():
     print()
     print("Commands:")
     print("    start       Start a project environment")
+    print("    plan        Show actions needed for a project")
     print("    stop        Stop a project environment")
     print("    save        Save current session")
     print("    restore     Restore previous session")
-    print("    status      Show current state")
+    print("    status      Show current desktop state")
     print("    run         Execute an approved action")
     print("    learn       Create a new automation")
     print()
 
 
-def start_project(project_name: str): 
+def _load_project_or_error(project_name: str):
     project = load_project(project_name)
 
     if project is None:
         print(f"Project: `{project_name}` does not exist.")
+        return None
+
+    if "windows" not in project:
+        print("Project file is missing required `windows` section.")
+        return None
+
+    return project
+
+
+def start_project(project_name: str):
+    project = _load_project_or_error(project_name)
+    if project is None:
         return 1
+
     print()
     print(f"Starting DOOM project: `{project['name']}`")
     print()
 
-    windows = project.get("windows")
-    if windows is None:
-        print("Project file is missing required `windows` section.")
-        return 1
-
     print("Windows:")
 
-    for name, window in windows.items():
+    for name, window in project["windows"].items():
         command = window.get("command")
         workspace = window.get("workspace")
         directory = window.get("directory")
@@ -52,32 +65,128 @@ def start_project(project_name: str):
 
     return 0
 
-def route(command: str, argument: str | None = None):
-    if command == "start":
-        if argument is None:
-            print("Usage: doom start <project>")
-            return 1
-        return start_project(argument)
-    elif command == "help":
-        show_help()
-        return 0
-    print(f"Unknown command: '{command}'")
-    return 1
-
-
 
 def show_status():
-    hyprland = HyprlandState()
-    clients = hyprland.normal_clients()
-    
+    clients = _read_normal_clients()
+    if clients is None:
+        return 1
+
     grouped = {}
 
     for client in clients:
         workspace = client["workspace"]["id"]
         grouped.setdefault(workspace, []).append(client)
 
-    for workspace, clients in sorted(grouped.items()):
-        print(f"Workspace: {workspace}")
+    print()
+    print("Current Hyprland State")
+    print()
 
-        for client in clients:
-            print(f"    {client['class']} {client.get('title', '')} {client.get('cwd', '')}")
+    if not grouped:
+        print("No normal windows found.")
+        return 0
+
+    for workspace, workspace_clients in sorted(grouped.items()):
+        print(f"Workspace {workspace}:")
+
+        for client in workspace_clients:
+            window_class = client.get("class", "unknown")
+            title = client.get("title", "")
+            cwd = client.get("cwd")
+
+            details = window_class
+            if title:
+                details = f"{details} - {title}"
+            if cwd:
+                details = f"{details} ({cwd})"
+
+            print(f"    {details}")
+
+        print()
+
+    return 0
+
+
+def _print_plan(project_name: str, actions: list[dict]):
+    print()
+    print(f"Plan for {project_name}")
+    print()
+
+    if not actions:
+        print("No actions needed.")
+        return
+
+    launch_actions = [action for action in actions if action["action"] == "launch"]
+    move_actions = [action for action in actions if action["action"] == "move"]
+
+    if launch_actions:
+        print("Launch:")
+        for action in launch_actions:
+            print(
+                f"    {action['name']} -> {action['command']} "
+                f"on workspace {action['workspace']}"
+            )
+        print()
+
+    if move_actions:
+        print("Move:")
+        for action in move_actions:
+            print(f"    {action['name']} -> workspace {action['workspace']}")
+        print()
+
+
+def plan_project(project_name: str):
+    project = _load_project_or_error(project_name)
+    if project is None:
+        return 1
+
+    clients = _read_normal_clients()
+    if clients is None:
+        return 1
+
+    current = {"clients": clients}
+    desired = ProjectState(project)
+    actions = StateDiff(current, desired).calculate()
+    _print_plan(project["name"], actions)
+    return 0
+
+
+def _read_normal_clients():
+    try:
+        return HyprlandState().normal_clients()
+    except FileNotFoundError:
+        print("Could not read Hyprland state: `hyprctl` was not found.")
+        return None
+    except subprocess.CalledProcessError as error:
+        message = (
+            error.stderr.strip()
+            if error.stderr
+            else f"`hyprctl -j {error.cmd[-1]}` failed with exit code {error.returncode}."
+        )
+        print(f"Could not read Hyprland state: {message}")
+        return None
+    except Exception as error:
+        print(f"Could not read Hyprland state: {error}")
+        return None
+
+
+def route(command: str, argument: str | None = None):
+    if command == "start":
+        if argument is None:
+            print("Usage: doom start <project>")
+            return 1
+        return start_project(argument)
+    elif command == "plan":
+        if argument is None:
+            print("Usage: doom plan <project>")
+            return 1
+        return plan_project(argument)
+    elif command == "status":
+        if argument is not None:
+            print("Usage: doom status")
+            return 1
+        return show_status()
+    elif command == "help":
+        show_help()
+        return 0
+    print(f"Unknown command: '{command}'")
+    return 1
