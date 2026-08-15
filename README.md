@@ -117,13 +117,15 @@ Currently working:
 python core/main.py help
 python core/main.py start test
 python core/main.py start sellora
+python core/main.py status
+python core/main.py plan sellora
 ```
 
 Current limitations:
 
 - `start` currently prints the desired project windows; it does not fully execute the plan yet.
-- `status` is not implemented yet.
-- `plan` is not implemented yet.
+- `status` requires a running Hyprland session with `hyprctl`.
+- `plan` requires a running Hyprland session because it compares against current windows.
 - Matching is still basic.
 - Terminal identity needs stronger matching through title, role, directory, or command.
 - Session save/restore is not implemented yet.
@@ -299,6 +301,8 @@ Run the CLI:
 python core/main.py help
 python core/main.py start test
 python core/main.py start sellora
+python core/main.py status
+python core/main.py plan sellora
 ```
 
 Or use the shell entry point:
@@ -307,6 +311,8 @@ Or use the shell entry point:
 ./doom help
 ./doom start test
 ./doom start sellora
+./doom status
+./doom plan sellora
 ```
 
 ## Roadmap
