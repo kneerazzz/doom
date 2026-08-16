@@ -14,7 +14,7 @@ class HyprlandController:
             )
         return result.stdout.strip()
     
-    def workspace(self, workspace: int):
+    def focus_workspace(self, workspace: int):
         return self.dispatch(
             f'hl.dsp.focus({{workspace = "{workspace}"}})'
         )
@@ -25,9 +25,14 @@ class HyprlandController:
             shell=True
             #f'hl.dsp.exec_cmd("{application}")'
         )
+    def move_window(self, address: str, workspace: int):
+        return self.dispatch(
+            f'hl.dsp.movetoworkspacesilent({{workspace = "{workspace}", window = "{address}"}})'
+        )
 
 if __name__ == "__main__":
     controller = HyprlandController()
 
     controller.workspace(3)
     controller.launch('kitty')
+    controller.move_window(5, '')

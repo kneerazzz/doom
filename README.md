@@ -142,8 +142,8 @@ name: sellora
 
 windows:
   browser:
-    command: firefox
-    class: firefox
+    command: brave-browser
+    class: brave-browser
     workspace: 1
 
   editor:
@@ -152,30 +152,42 @@ windows:
     workspace: 2
     directory: ~/Documents/neer/sellora
 
-  terminal:
-    command: kitty --working-directory ~/Documents/neer/sellora
-    class: kitty
-    workspace: 3
-    directory: ~/Documents/neer/sellora
-
   spotify:
     command: spotify
     class: spotify
     workspace: 10
+
+terminals:
+  defaults:
+    app: kitty
+    class: kitty
+    workspace: 3
+    directory: ~/Documents/neer/sellora
+    title_prefix: doom:sellora
+
+  entries:
+    shell: {}
+    server: {}
+    logs: {}
+    packages: {}
 ```
 
 For normal applications, matching by window class may be enough.
 
-For terminals, class is not enough because multiple Kitty windows can be open at the same time. Terminal definitions should eventually include stable identity fields:
+For terminals, class is not enough because multiple Kitty windows can be open at the same time. Terminal definitions should include stable identity fields:
 
 ```yaml
-server:
-  command: kitty --title doom:sellora:server --working-directory ~/Documents/neer/sellora npm run dev
-  class: kitty
-  title: doom:sellora:server
-  workspace: 3
-  directory: ~/Documents/neer/sellora
-  role: server
+terminals:
+  defaults:
+    app: kitty
+    class: kitty
+    workspace: 3
+    directory: ~/Documents/neer/sellora
+    title_prefix: doom:sellora
+
+  entries:
+    server:
+      title: doom:sellora:server
 ```
 
 That gives DOOM a reliable way to detect the correct terminal later.
