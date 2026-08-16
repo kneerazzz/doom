@@ -47,7 +47,8 @@ class StateDiff:
         actions = []
         used_clients = set()
 
-        for name, config in self.desired.windows().items():
+        for config in self.desired.targets():
+            name = config["name"]
             workspace = config["workspace"]
 
             client = self.find_window(config, used_clients)
@@ -56,6 +57,7 @@ class StateDiff:
                 actions.append({
                     "action": "launch",
                     "name": name,
+                    "type": config["type"],
                     "command": config["command"],
                     "workspace": workspace
                 })
@@ -69,6 +71,7 @@ class StateDiff:
                 actions.append({
                     "action": "move",
                     "name": name,
+                    "type": config["type"],
                     "address": client["address"],
                     "workspace": workspace
                 })
