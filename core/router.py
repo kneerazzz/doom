@@ -1,11 +1,19 @@
 import subprocess
+import sys
 from pathlib import Path
+from executor import Executor
 from project import load_project
 from stats.diff import StateDiff
 from stats.hyprland_state import HyprlandState
 from stats.project_state import ProjectState
 
-PROJECT_DIR = Path(__file__).resolve().parent.parent / "projects"
+PROJECT_ROOT = Path(__file__).resolve().parent.parent
+PROJECT_DIR = PROJECT_ROOT / "projects"
+
+if str(PROJECT_ROOT) not in sys.path:
+    sys.path.insert(0, str(PROJECT_ROOT))
+
+from skills.hyprland.controller import HyprlandController
 
 
 
@@ -17,14 +25,14 @@ def show_help():
     print("    doom <command>")
     print()
     print("Commands:")
-    print("    start       Start a project environment")
-    print("    plan        Show actions needed for a project")
-    print("    stop        Stop a project environment")
-    print("    save        Save current session")
-    print("    restore     Restore previous session")
-    print("    status      Show current desktop state")
-    print("    run         Execute an approved action")
-    print("    learn       Create a new automation")
+    print("    start <project>      Start a project environment")
+    print("    plan  <project>      Show actions needed for a project")
+    print("    stop                 Stop a project environment")
+    print("    save                 Save current session")
+    print("    restore              Restore previous session")
+    print("    status               Show current desktop state")
+    print("    run                  Execute an approved action")
+    print("    learn                Create a new automation")
     print()
 
 
@@ -35,8 +43,8 @@ def _load_project_or_error(project_name: str):
         print(f"Project: `{project_name}` does not exist.")
         return None
 
-    if "windows" not in project:
-        print("Project file is missing required `windows` section.")
+    if "windows" not in project and "terminals" not in project:
+        print("Project file needs at least one of: `windows`, `terminals`.")
         return None
 
     return project
@@ -47,21 +55,27 @@ def start_project(project_name: str):
     if project is None:
         return 1
 
+    clients = _read_normal_clients()
+    if clients is None:
+        return 1
+
+    desired = ProjectState(project)
+    current = {"clients": clients}
+    actions = StateDiff(current, desired).calculate()
+
     print()
     print(f"Starting DOOM project: `{project['name']}`")
-    print()
 
-    print("Windows:")
+    _print_plan(project["name"], actions)
 
-    for name, window in project["windows"].items():
-        command = window.get("command")
-        workspace = window.get("workspace")
-        directory = window.get("directory")
-        details = f"{command} -> workspace {workspace}"
-        if directory:
-            details = f"{details} ({directory})"
-        print(f"    {name}: {details}")
+    if not actions:
+        return 0
 
+    try:
+        Executor(HyprlandController()).run(actions)
+    except Exception as error:
+        print(f"Could not execute plan: {error}")
+        return 1
 
     return 0
 
@@ -121,8 +135,9 @@ def _print_plan(project_name: str, actions: list[dict]):
     if launch_actions:
         print("Launch:")
         for action in launch_actions:
+            label = f"{action['type']}:{action['name']}"
             print(
-                f"    {action['name']} -> {action['command']} "
+                f"    {label} -> {action['command']} "
                 f"on workspace {action['workspace']}"
             )
         print()
@@ -130,7 +145,8 @@ def _print_plan(project_name: str, actions: list[dict]):
     if move_actions:
         print("Move:")
         for action in move_actions:
-            print(f"    {action['name']} -> workspace {action['workspace']}")
+            label = f"{action['type']}:{action['name']}"
+            print(f"    {label} -> workspace {action['workspace']}")
         print()
 
 
