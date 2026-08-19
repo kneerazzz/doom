@@ -25,8 +25,27 @@ class TestExecutor(unittest.TestCase):
         ]
 
         executor.run(actions)
+        controller.launch.assert_called_once_with("brave-browser", workspace=1, window_class=None)
 
-        controller.launch.assert_called_once_with("brave-browser", workspace=1)
+
+    def test_run_launch_action_with_class(self):
+        controller = MagicMock()
+        executor = Executor(controller)
+        actions = [
+            {
+                "action": "launch",
+                "name": "editor",
+                "type": "window",
+                "command": "code ~/Documents/neer/sellora",
+                "class": "code",
+                "workspace": 5,
+            }
+        ]
+
+        executor.run(actions)
+
+        controller.launch.assert_called_once_with("code ~/Documents/neer/sellora", workspace=5, window_class="code")
+
 
     def test_run_move_action(self):
         controller = MagicMock()

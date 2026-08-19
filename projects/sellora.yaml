@@ -22,6 +22,10 @@ windows:
     command: antigravity
     class: editor
     workspace: 2
+  discord:
+    command: discord
+    class: discord
+    workspace: 9
   
 
 terminals:

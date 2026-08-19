@@ -37,6 +37,28 @@ class TestHyprlandController(unittest.TestCase):
             text=True
         )
 
+    @patch("subprocess.run")
+    def test_launch_with_workspace_and_class(self, mock_run):
+        mock_run.return_value = MagicMock(returncode=0, stdout="ok\n")
+        controller = HyprlandController()
+
+        controller.launch("code ~/Documents/neer/sellora", workspace=5, window_class="code")
+
+        self.assertEqual(mock_run.call_count, 2)
+        mock_run.assert_any_call(
+            ["hyprctl", "eval", 'hl.window_rule({match = {class = "(?i)^code$"}, workspace = "5 silent"})'],
+            capture_output=True,
+            text=True
+        )
+
+
+        mock_run.assert_any_call(
+            ["hyprctl", "dispatch", 'hl.dsp.exec_cmd("[workspace 5 silent] code ~/Documents/neer/sellora")'],
+            capture_output=True,
+            text=True
+        )
+
+
 
     @patch("subprocess.run")
     def test_move_window(self, mock_run):
