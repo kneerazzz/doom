@@ -6,10 +6,10 @@ class Executor:
     def run(self, actions):
         for action in actions:
             if action["action"] == "launch":
-                self.controller.focus_workspace(action["workspace"])
-                self.controller.launch(action["command"])
+                self.controller.launch(action["command"], workspace=action.get("workspace"))
             elif action["action"] == "move":
-                self.controller.move_window(action["workspace"], action["address"])
+                self.controller.move_window(action["address"], action["workspace"])
+
 
 
 Executer = Executor

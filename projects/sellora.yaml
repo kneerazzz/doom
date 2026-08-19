@@ -4,11 +4,11 @@ windows:
   browser:
     command: brave-browser
     class: brave-browser
-    workspace: 1
+    workspace: 4
   editor:
     command: code ~/Documents/neer/sellora
     class: code
-    workspace: 2
+    workspace: 5
     directory: ~/Documents/neer/sellora
   spotify: 
     command: spotify
@@ -17,11 +17,11 @@ windows:
   postman:
     command: postman
     class: postman
-    workspace: 5
+    workspace: 6
   antigravity:
     command: antigravity
     class: editor
-    workspace: 4
+    workspace: 2
   
 
 terminals:
@@ -32,7 +32,12 @@ terminals:
     directory: ~/Documents/neer/sellora
     title_prefix: doom:sellora
   entries:
-    shell: {}
-    server: {}
-    logs: {}
-    packages: {}
+    root:
+      directory: ~/Documents/neer/sellora
+    frontend:
+      directory: ~/Documents/neer/sellora/apps/web
+    backend:
+      directory: ~/Documents/neer/sellora/apps/server
+    logs:
+      directory: ~/Documents/neer/sellora/apps/copilot
+

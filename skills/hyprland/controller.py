@@ -19,20 +19,27 @@ class HyprlandController:
             f'hl.dsp.focus({{workspace = "{workspace}"}})'
         )
     
-    def launch(self, application: str):
+    def launch(self, application: str, workspace: int | str | None = None):
+        if workspace is not None:
+            return self.dispatch(
+                f'hl.dsp.exec_cmd("[workspace {workspace} silent] {application}")'
+            )
         return subprocess.Popen(
             application,
             shell=True
-            #f'hl.dsp.exec_cmd("{application}")'
         )
+
+
     def move_window(self, address: str, workspace: int):
         return self.dispatch(
-            f'hl.dsp.movetoworkspacesilent({{workspace = "{workspace}", window = "{address}"}})'
+            f'hl.dsp.window.move({{workspace = "{workspace}", window = "address:{address}", follow = false}})'
         )
+
 
 if __name__ == "__main__":
     controller = HyprlandController()
 
-    controller.workspace(3)
+    controller.focus_workspace(3)
     controller.launch('kitty')
-    controller.move_window(5, '')
+    controller.move_window("0x123456", 5)
+

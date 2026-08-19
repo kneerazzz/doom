@@ -26,8 +26,11 @@ class StateDiff:
             return False
 
         expected_title = config.get("title")
-        if expected_title and client.get("title") != expected_title:
-            return False
+        if expected_title:
+            actual_title = client.get("title", "")
+            if actual_title != expected_title and not actual_title.startswith(expected_title):
+                return False
+
 
         expected_directory = config.get("directory")
         if expected_directory:
