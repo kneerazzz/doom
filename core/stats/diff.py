@@ -62,8 +62,10 @@ class StateDiff:
                     "name": name,
                     "type": config["type"],
                     "command": config["command"],
+                    "class": config.get("class"),
                     "workspace": workspace
                 })
+
                 continue
 
             used_clients.add(client.get("address") or id(client))

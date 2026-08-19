@@ -55,6 +55,12 @@ def start_project(project_name: str):
     if project is None:
         return 1
 
+    controller = HyprlandController()
+    try:
+        initial_active_window = HyprlandState().active_window()
+    except Exception:
+        initial_active_window = None
+
     clients = _read_normal_clients()
     if clients is None:
         return 1
@@ -72,12 +78,19 @@ def start_project(project_name: str):
         return 0
 
     try:
-        Executor(HyprlandController()).run(actions)
+        Executor(controller).run(actions)
     except Exception as error:
         print(f"Could not execute plan: {error}")
         return 1
+    finally:
+        if initial_active_window and isinstance(initial_active_window, dict) and "address" in initial_active_window:
+            try:
+                controller.focus_window(initial_active_window["address"])
+            except Exception:
+                pass
 
     return 0
+
 
 
 def show_status():
