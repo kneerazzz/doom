@@ -45,6 +45,22 @@ class HyprlandState:
         return result
 
 
+    def scratchpad_clients(self):
+        clients = self.clients()
+
+        result = []
+
+        for client in clients:
+            workspace_id = client["workspace"]["id"]
+            name = client["workspace"].get("name", "")
+            if workspace_id < 0 or name.startswith("special:"):
+                client["cwd"] = get_process_cwd(client["pid"])
+                result.append(client)
+
+        return result
+
+
+
 
     
 

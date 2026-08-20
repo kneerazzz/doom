@@ -95,40 +95,62 @@ def start_project(project_name: str):
 
 def show_status():
     clients = _read_normal_clients()
+    scratchpad_clients = _read_scratchpad_clients()
     if clients is None:
         return 1
 
     grouped = {}
-
     for client in clients:
-        workspace = client["workspace"]["id"]
-        grouped.setdefault(workspace, []).append(client)
+        workspace_id = client["workspace"]["id"]
+        grouped.setdefault(workspace_id, []).append(client)
 
     print()
     print("Current Hyprland State")
     print()
 
-    if not grouped:
-        print("No normal windows found.")
+    if not grouped and not scratchpad_clients:
+        print("No windows found.")
         return 0
 
-    for workspace, workspace_clients in sorted(grouped.items()):
-        print(f"Workspace {workspace}:")
+    if grouped:
+        for workspace, workspace_clients in sorted(grouped.items()):
+            print(f"Workspace {workspace}:")
+            for client in workspace_clients:
+                window_class = client.get("class", "unknown")
+                title = client.get("title", "")
+                cwd = client.get("cwd")
 
-        for client in workspace_clients:
-            window_class = client.get("class", "unknown")
-            title = client.get("title", "")
-            cwd = client.get("cwd")
+                details = window_class
+                if title:
+                    details = f"{details} - {title}"
+                if cwd:
+                    details = f"{details} ({cwd})"
 
-            details = window_class
-            if title:
-                details = f"{details} - {title}"
-            if cwd:
-                details = f"{details} ({cwd})"
+                print(f"    {details}")
+            print()
 
-            print(f"    {details}")
+    if scratchpad_clients:
+        print("Special / Scratchpad Workspaces:")
+        special_grouped = {}
+        for client in scratchpad_clients:
+            name = client["workspace"].get("name", "special")
+            special_grouped.setdefault(name, []).append(client)
 
-        print()
+        for name, sp_clients in sorted(special_grouped.items()):
+            print(f"  {name}:")
+            for client in sp_clients:
+                window_class = client.get("class", "unknown")
+                title = client.get("title", "")
+                cwd = client.get("cwd")
+
+                details = window_class
+                if title:
+                    details = f"{details} - {title}"
+                if cwd:
+                    details = f"{details} ({cwd})"
+
+                print(f"    {details}")
+            print()
 
     return 0
 
@@ -182,6 +204,25 @@ def plan_project(project_name: str):
 def _read_normal_clients():
     try:
         return HyprlandState().normal_clients()
+    except FileNotFoundError:
+        print("Could not read Hyprland state: `hyprctl` was not found.")
+        return None
+    except subprocess.CalledProcessError as error:
+        message = (
+            error.stderr.strip()
+            if error.stderr
+            else f"`hyprctl -j {error.cmd[-1]}` failed with exit code {error.returncode}."
+        )
+        print(f"Could not read Hyprland state: {message}")
+        return None
+    except Exception as error:
+        print(f"Could not read Hyprland state: {error}")
+        return None
+
+
+def _read_scratchpad_clients():
+    try:
+        return HyprlandState().scratchpad_clients()
     except FileNotFoundError:
         print("Could not read Hyprland state: `hyprctl` was not found.")
         return None
