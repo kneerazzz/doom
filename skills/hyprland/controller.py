@@ -64,6 +64,13 @@ class HyprlandController:
             f'hl.dsp.window.move({{workspace = "{workspace}", window = "address:{address}", follow = false}})'
         )
 
+    def close_window(self, address: str):
+        address_target = address if str(address).startswith("address:") else f"address:{address}"
+        return self.dispatch(
+            f'hl.dsp.window.close({{window = "{address_target}"}})'
+        )
+
+
 
 if __name__ == "__main__":
     controller = HyprlandController()

@@ -11,7 +11,7 @@ windows:
     workspace: 5
     directory: ~/Documents/neer/sellora
   spotify: 
-    command: spotify
+    command: spotify-launcher
     class: spotify
     workspace: 10
   postman:

@@ -12,6 +12,16 @@ def load_project(project_name: str):
     
     with project_file.open("r") as file:
         project = yaml.safe_load(file)
-    
-    
+
     return project
+
+
+def save_project(project_name: str, project_data: dict):
+    PROJECT_DIR.mkdir(parents=True, exist_ok=True)
+    project_file = PROJECT_DIR / f"{project_name}.yaml"
+
+    with project_file.open("w") as file:
+        yaml.safe_dump(project_data, file, sort_keys=False)
+
+    return project_file
+
