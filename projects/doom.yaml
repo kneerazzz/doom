@@ -1,0 +1,17 @@
+name: doom
+windows:
+  brave-browser:
+    command: brave-browser
+    class: brave-browser
+    workspace: 1
+    directory: /home/llyod
+  spotify:
+    command: spotify
+    class: spotify
+    workspace: 10
+    directory: /home/llyod
+  antigravity:
+    command: antigravity
+    class: antigravity
+    workspace: 2
+    directory: /home/llyod

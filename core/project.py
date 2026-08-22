@@ -1,7 +1,12 @@
-from pathlib import Path
+from pathlib import Path, PosixPath, PurePath
 import yaml
 
 PROJECT_DIR = Path(__file__).resolve().parent.parent / "projects"
+
+yaml.SafeDumper.add_representer(Path, lambda dumper, data: dumper.represent_scalar('tag:yaml.org,2002:str', str(data)))
+yaml.SafeDumper.add_representer(PosixPath, lambda dumper, data: dumper.represent_scalar('tag:yaml.org,2002:str', str(data)))
+yaml.SafeDumper.add_representer(PurePath, lambda dumper, data: dumper.represent_scalar('tag:yaml.org,2002:str', str(data)))
+
 
 
 def load_project(project_name: str): 

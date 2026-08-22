@@ -268,7 +268,10 @@ def save_project_session(project_name: str):
         w_class = client.get("class", "unknown").lower()
         title = client.get("title", "")
         cwd = client.get("cwd")
+        if cwd is not None:
+            cwd = str(cwd)
         workspace = client["workspace"]["id"]
+
 
         is_terminal = w_class in terminal_classes or "doom:" in title
 
